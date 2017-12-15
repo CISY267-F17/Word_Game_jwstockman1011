@@ -9,6 +9,12 @@ public class Letter : MonoBehaviour
     public Renderer tRend;  //renderer of 3d text. determines if char is visible
     public bool big = false;    //big letters act differently
 
+    //linear interpolation fields
+    public List<Vector3> pts = null;
+    public float timeDuration = 0.5f;
+    public float timeStart = -1;
+    public string easingCurve = Easing.InOut; //easing from utils.cs
+
     void Awake()
     {
         tMesh = GetComponentInChildren<TextMesh>();
@@ -78,7 +84,46 @@ public class Letter : MonoBehaviour
     {
         set
         {
+            //transform.position = value; //no longer needed
+
+            Vector3 mid = (transform.position + value) / 2f;
+            float mag = (transform.position - value).magnitude;
+            mid += Random.insideUnitSphere * mag * 0.25f;
+            pts = new List<Vector3>() { transform.position, mid, value };
+
+            if (timeStart == -1)
+            {
+                timeStart = Time.time;
+            }
+        }
+    }
+
+    //moves immediately to the new position
+    public Vector3 position
+    {
+        set
+        {
             transform.position = value;
+        }
+    }
+
+    //interpolation code
+    void Update()
+    {
+        if (timeStart == -1)
+        {
+            return;
+        }
+
+        float u = (Time.time - timeStart) / timeDuration;
+        u = Mathf.Clamp01(u);
+        float u1 = Easing.Ease(u, easingCurve);
+        Vector3 v = Utils.Bezier(u1, pts);
+        transform.position = v;
+
+        if (u == 1)
+        {
+            timeStart = -1;
         }
     }
 }
